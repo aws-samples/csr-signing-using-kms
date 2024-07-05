@@ -36,7 +36,7 @@ for CSR generation.
 
 5. Run this program in the directory where the git repo is cloned by issuing the following command:
 
-   `mvn exec:java`
+   `mvn clean && mvn compile && mvn exec:java`
 
     The above command will build and execute the code. The program will output the progress of various steps involved 
     and will output a PEM formatted CSR in the end. You may copy/paste the program output in a local file, say
