@@ -5,7 +5,9 @@ package com.amazonaws.kmscsr.examples;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -40,6 +42,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 public class CsrCreator {
 
     private KmsClient awsKmsClient;
@@ -52,6 +55,8 @@ public class CsrCreator {
     private String awsKeySpec;
 
     public CsrCreator() {
+        BasicConfigurator.configure();
+        Logger.getRootLogger().setLevel(Level.ERROR);
         Security.addProvider(new BouncyCastleProvider());
     }
 
@@ -96,7 +101,8 @@ public class CsrCreator {
 
         try {
             cfgJsonString = new String(Files.readAllBytes(Paths.get(cfgFilePathName)), StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             System.out.println("ERROR: Error reading config file kmscsr.json.\n" +
                     "Please ensure that the file is present under <project-root>/cfg/kmscsr.json. Exiting ...");
             e.printStackTrace();
@@ -110,7 +116,8 @@ public class CsrCreator {
         Config cfgJsonObj = null;
         try {
             cfgJsonObj = gson.fromJson(cfgJsonString, Config.class);
-        } catch (JsonSyntaxException e) {
+        }
+        catch (JsonSyntaxException e) {
             System.out.println("ERROR: Invalid JSON syntax in <project-root>/cfg/kmscsr.json. Exiting ...\n");
             System.exit(-1);
         }
@@ -178,13 +185,10 @@ public class CsrCreator {
     private String getSigningAlgorithmFromAwsKeySpec(final String awsKeySpec) {
         // The AWS key spec string names below are derived from AWS documentation:
         // https://docs.aws.amazon.com/kms/latest/developerguide/asymmetric-key-specs.html
-        switch (awsKeySpec) {
-            case "ECC_NIST_P256":
-                return "ECDSA_SHA_256";
-
-            default:
-                throw new IllegalArgumentException("AWS Key Spec " + awsKeySpec + " is not supported");
+        if (awsKeySpec.equals("ECC_NIST_P256")) {
+            return "ECDSA_SHA_256";
         }
+        throw new IllegalArgumentException("AWS Key Spec " + awsKeySpec + " is not supported");
     }
 
     /**
@@ -198,11 +202,14 @@ public class CsrCreator {
         try {
             publicKey = KeyFactory.getInstance(jceSigningAlgorithm, BouncyCastleProvider.PROVIDER_NAME)
                     .generatePublic(publicKeySpec);
-        } catch (InvalidKeySpecException e) {
+        }
+        catch (InvalidKeySpecException e) {
             throw new IllegalArgumentException("Key spec provided in config is invalid", e);
-        } catch (NoSuchAlgorithmException e) {
+        }
+        catch (NoSuchAlgorithmException e) {
             throw new IllegalArgumentException("Signing algorithm (part of key spec) provided in config is invalid", e);
-        } catch (NoSuchProviderException e) {
+        }
+        catch (NoSuchProviderException e) {
             throw new IllegalStateException("Internal program error. Try rebuilding program", e);
         }
 
@@ -213,7 +220,8 @@ public class CsrCreator {
         ExtensionsGenerator extensionsGenerator = new ExtensionsGenerator();
         try {
             extensionsGenerator.addExtension(Extension.basicConstraints, false, new BasicConstraints(false));
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             System.out.println("ERROR: Potential error in certificate common name in config. Exiting ...");
             e.printStackTrace();
             System.exit(-1);
@@ -230,7 +238,8 @@ public class CsrCreator {
 
         try (PemWriter csrPemWriter = new PemWriter(csrStringWriter)) {
             csrPemWriter.writeObject(miscPEMGenerator);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             System.out.println("ERROR: Internal program error in PEM formatting. Exiting ...");
             e.printStackTrace();
             System.exit(-1);
