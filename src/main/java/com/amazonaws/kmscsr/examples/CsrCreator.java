@@ -9,7 +9,8 @@ import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
-import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
@@ -51,6 +52,7 @@ public class CsrCreator {
     private String kmsRegion;
     private String jceSigningAlgorithm;
     private String certCommonName;
+    private String certCountryCode;
     private String signingAlgorithm;
     private String awsKeySpec;
 
@@ -60,7 +62,7 @@ public class CsrCreator {
         Security.addProvider(new BouncyCastleProvider());
     }
 
-    public static void main(final String[] args) throws Exception {
+    public static void main(final String[] args) {
         System.out.println("Running CSR creation and signing using AWS KMS util ... ");
 
         final CsrCreator csrCreator = new CsrCreator();
@@ -157,12 +159,24 @@ public class CsrCreator {
         certCommonName = cfgJsonObj.getCertCommonName();
         System.out.println("Cert Common Name: " + certCommonName);
 
-        // Basic syntax checking of CN for brevity: Value should not contain separators and equal(=) sign
-        // Formal CN syntax is defined in: https://www.rfc-editor.org/rfc/rfc1779.html#section-2.3
-        Pattern cnRegexValidationattern = Pattern.compile(",|;|=");
-        Matcher cnRegexMatcher = cnRegexValidationattern.matcher(certCommonName);
-        if (cnRegexMatcher.find()) {
+        certCountryCode = cfgJsonObj.getCertCountryCode();
+        System.out.println("Cert Country Code: " + certCountryCode);
+
+        // Basic syntax checking of CN, C names for brevity: Value should not contain separators and equal(=) sign
+        // Formal Name syntax is defined in: https://www.rfc-editor.org/rfc/rfc1779.html#section-2.3
+        Pattern nameRegexValidationPattern = Pattern.compile("[,;=]");
+
+        Matcher commonNameRegexMatcher = nameRegexValidationPattern.matcher(certCommonName);
+        if (commonNameRegexMatcher.find()) {
             System.out.println("ERROR: cert_common_name in kmscsr.json contains illegal characters " + certCommonName);
+            System.out.println("Fix configuration. Exiting ...");
+            System.exit(-1);
+        }
+
+        Matcher countryCodeRegexMatcher = nameRegexValidationPattern.matcher(certCountryCode);
+        if (countryCodeRegexMatcher.find()) {
+            System.out.println(
+                    "ERROR: cert_country_code in kmscsr.json contains illegal characters " + certCountryCode);
             System.out.println("Fix configuration. Exiting ...");
             System.exit(-1);
         }
@@ -198,7 +212,7 @@ public class CsrCreator {
         // Encode public key bytes to ASN.1 and generate a JCE compliant PublicKey object
         System.out.println("Encoding public key in ASN.1 format ...");
         final X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
-        PublicKey publicKey = null;
+        PublicKey publicKey;
         try {
             publicKey = KeyFactory.getInstance(jceSigningAlgorithm, BouncyCastleProvider.PROVIDER_NAME)
                     .generatePublic(publicKeySpec);
@@ -214,15 +228,18 @@ public class CsrCreator {
         }
 
         System.out.println("Creating CSR ...");
-        X500Name csrSubject = new X500Name("CN=" + certCommonName);
-        JcaPKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(csrSubject,
+        X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
+        nameBuilder.addRDN(BCStyle.CN, certCommonName);
+        nameBuilder.addRDN(BCStyle.C, certCountryCode);
+        JcaPKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(nameBuilder.build(),
                 publicKey);
+
         ExtensionsGenerator extensionsGenerator = new ExtensionsGenerator();
         try {
             extensionsGenerator.addExtension(Extension.basicConstraints, false, new BasicConstraints(false));
         }
         catch (IOException e) {
-            System.out.println("ERROR: Potential error in certificate common name in config. Exiting ...");
+            System.out.println("ERROR: Potential error in certificate parameters in config. Exiting ...");
             e.printStackTrace();
             System.exit(-1);
         }

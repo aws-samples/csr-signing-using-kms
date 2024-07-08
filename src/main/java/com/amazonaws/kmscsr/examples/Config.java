@@ -16,6 +16,9 @@ public class Config {
     @SerializedName("cert_common_name")
     private String certCommonName;
 
+    @SerializedName("cert_country_code")
+    private String certCountryCode;
+
     public String getAwsKeySpec() {
         return awsKeySpec;
     }
@@ -28,4 +31,7 @@ public class Config {
         return certCommonName;
     }
 
+    public String getCertCountryCode() {
+        return certCountryCode;
+    }
 }

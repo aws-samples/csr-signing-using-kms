@@ -29,9 +29,14 @@ for CSR generation.
 4. Update <project-root>/cfg/kmscsr.json config file with AWS KMS Key ARN, AWS Key Spec and Cert Common Name.
    This program has been tested for AWS KMS key spec ECC_NIST_P256 (signing algorithm ECDSA_SHA_256) and thus
    only supports that key spec in the configuration. You may extend the program for other signing algorithms.
-   The program inputs certificate common name (CN) as CSR input parameter. You may extend the program for other
-   input parameters such as subject alt names (SANs). Please ensure that the CN you enter in `cert_common_name`
-   field in `kmscsr.json` is formatted correctly as per https://www.rfc-editor.org/rfc/rfc1779.html#section-2.3
+   The program inputs certificate common name (CN) and country code (C) as CSR input parameters. You may extend 
+   the program for other input parameters such as subject alt names (SANs). 
+
+   Please ensure that the CN you enter in `cert_common_name` field in `kmscsr.json` is formatted correctly as per: 
+   https://www.rfc-editor.org/rfc/rfc1779.html#section-2.3
+
+   Please ensure that the country code you enter in `cert_country_code` field in `kmscsr.json` is formatted as per:
+   https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 
 
 5. Run this program in the directory where the git repo is cloned by issuing the following command:

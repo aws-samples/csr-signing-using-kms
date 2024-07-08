@@ -1,5 +1,6 @@
 {
   "aws_key_arn": "arn:aws:kms:your-aws-region:012345678901:key/your-key-id",
   "aws_key_spec": "ECC_NIST_P256",
-  "cert_common_name": "your-cert-common-name"
+  "cert_common_name": "examplecorp.com",
+  "cert_country_code": "US"
 }
